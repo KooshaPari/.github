@@ -1,0 +1,15 @@
+name: Go CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: phenotype/.github/.github/workflows/ci-go.yml@main
+    with:
+      go-version: '1.22'
+      run-tests: true
+      run-lint: true
+      run-vet: true

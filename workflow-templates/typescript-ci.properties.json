@@ -1,0 +1,7 @@
+{
+  "name": "TypeScript CI",
+  "description": "Continuous integration for TypeScript/Node.js projects with ESLint, Prettier, tsc",
+  "iconName": "typescript",
+  "categories": ["TypeScript", "CI"],
+  "fileName": "typescript-ci.yml"
+}

@@ -1,0 +1,17 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2am UTC
+
+jobs:
+  security:
+    uses: phenotype/.github/.github/workflows/security.yml@main
+    with:
+      languages: 'python,javascript'
+      run-semgrep: true
+      run-codeql: true
+      run-secret-scan: true

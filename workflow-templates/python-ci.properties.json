@@ -1,0 +1,7 @@
+{
+  "name": "Python CI",
+  "description": "Continuous integration workflow for Python projects with ruff, pytest, mypy",
+  "iconName": "python",
+  "categories": ["Python", "CI"],
+  "fileName": "python-ci.yml"
+}

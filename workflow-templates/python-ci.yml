@@ -1,0 +1,14 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: phenotype/.github/.github/workflows/ci-python.yml@main
+    with:
+      python-version: '3.12'
+      run-tests: true
+      run-security: true

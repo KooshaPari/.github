@@ -1,0 +1,15 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
+    with:
+      rust-version: 'stable'
+      run-tests: true
+      run-clippy: true
+      run-fmt: true

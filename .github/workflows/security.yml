@@ -1,0 +1,215 @@
+name: Security Scanning (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      languages:
+        required: false
+        default: 'rust,python,javascript'
+        type: string
+      run-snyk:
+        required: false
+        default: false
+        type: boolean
+      run-semgrep:
+        required: false
+        default: true
+        type: boolean
+      run-codeql:
+        required: false
+        default: true
+        type: boolean
+      run-secret-scan:
+        required: false
+        default: true
+        type: boolean
+      run-dependency-scan:
+        required: false
+        default: true
+        type: boolean
+      rust-path:
+        required: false
+        default: '.'
+        type: string
+      python-path:
+        required: false
+        default: '.'
+        type: string
+    secrets:
+      SNYK_TOKEN:
+        required: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ─── Secret Detection ─────────────────────────────────────────────────
+  gitleaks:
+    name: Secret Detection (Gitleaks)
+    if: inputs.run-secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── Snyk Scan ──────────────────────────────────────────────────────────
+  snyk:
+    name: Snyk Security Scan
+    if: inputs.run-snyk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Snyk Code Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: code test
+          args: --sarif-file-output=snyk-code.sarif
+        continue-on-error: true
+
+      - name: Upload Snyk results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-code.sarif
+          category: snyk
+
+  # ─── Semgrep SAST ──────────────────────────────────────────────────────
+  semgrep:
+    name: Semgrep SAST
+    if: inputs.run-semgrep
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Semgrep Scan
+        run: |
+          semgrep ci --config=auto \
+            --sarif --sarif-output=semgrep.sarif \
+            --error || true
+        env:
+          SEMGREP_RULES: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/cwe-top-25
+
+      - name: Upload Semgrep results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ─── CodeQL Analysis ────────────────────────────────────────────────────
+  codeql:
+    name: CodeQL Analysis
+    if: inputs.run-codeql
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: ${{ fromJSON(format('[{0}]', inputs.languages)) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - uses: github/codeql-action/analyze@v3
+
+  # ─── Rust Security Audit ───────────────────────────────────────────────
+  cargo-audit:
+    name: Cargo Audit
+    if: contains(inputs.languages, 'rust') && inputs.run-dependency-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ${{ inputs.rust-path }}
+
+  # ─── Cargo Deny ─────────────────────────────────────────────────────────
+  cargo-deny:
+    name: Cargo Deny
+    if: contains(inputs.languages, 'rust') && inputs.run-dependency-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: Check advisories, licenses, duplicates
+        working-directory: ${{ inputs.rust-path }}
+        run: |
+          if [ -f deny.toml ]; then
+            cargo deny check
+          else
+            cargo deny check advisories licenses bans
+          fi
+
+  # ─── Python Security ────────────────────────────────────────────────────
+  python-security:
+    name: Python Security (bandit)
+    if: contains(inputs.languages, 'python') && inputs.run-dependency-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install bandit
+        run: pip install bandit[toml]
+
+      - name: Run bandit
+        working-directory: ${{ inputs.python-path }}
+        run: bandit -r src -ll || true
+
+  # ─── Trivy Scan ───────────────────────────────────────────────────────
+  trivy:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy FS Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy

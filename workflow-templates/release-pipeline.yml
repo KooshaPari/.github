@@ -1,0 +1,67 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  # Determine which CI to run based on project structure
+  detect-language:
+    runs-on: ubuntu-latest
+    outputs:
+      language: ${{ steps.detect.outputs.language }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            echo "language=rust" >> $GITHUB_OUTPUT
+          elif [ -f "package.json" ]; then
+            echo "language=typescript" >> $GITHUB_OUTPUT
+          elif [ -f "go.mod" ]; then
+            echo "language=go" >> $GITHUB_OUTPUT
+          elif [ -f "pyproject.toml" ] || [ -f "setup.py" ]; then
+            echo "language=python" >> $GITHUB_OUTPUT
+          else
+            echo "language=unknown" >> $GITHUB_OUTPUT
+          fi
+
+  # Run appropriate CI
+  rust-ci:
+    needs: detect-language
+    if: needs.detect-language.outputs.language == 'rust'
+    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
+
+  python-ci:
+    needs: detect-language
+    if: needs.detect-language.outputs.language == 'python'
+    uses: phenotype/.github/.github/workflows/ci-python.yml@main
+
+  ts-ci:
+    needs: detect-language
+    if: needs.detect-language.outputs.language == 'typescript'
+    uses: phenotype/.github/.github/workflows/ci-typescript.yml@main
+
+  go-ci:
+    needs: detect-language
+    if: needs.detect-language.outputs.language == 'go'
+    uses: phenotype/.github/.github/workflows/ci-go.yml@main
+
+  # Security scan after CI
+  security:
+    needs: [rust-ci, python-ci, ts-ci, go-ci]
+    if: always() && (needs.rust-ci.result == 'success' || needs.python-ci.result == 'success' || needs.ts-ci.result == 'success' || needs.go-ci.result == 'success')
+    uses: phenotype/.github/.github/workflows/security.yml@main
+    with:
+      languages: 'rust,python,javascript,go'
+
+  # Create release
+  release:
+    needs: security
+    uses: phenotype/.github/.github/workflows/release.yml@main
+    with:
+      version: ${{ github.ref_name }}
+      generate-notes: true
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

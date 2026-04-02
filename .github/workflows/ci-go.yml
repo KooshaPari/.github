@@ -1,0 +1,77 @@
+name: Go CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: false
+        default: '1.22'
+        type: string
+      package-path:
+        required: false
+        default: '.'
+        type: string
+      run-tests:
+        required: false
+        default: true
+        type: boolean
+      run-vet:
+        required: false
+        default: true
+        type: boolean
+      run-lint:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  check:
+    name: Go Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.package-path }}/go.sum
+
+      - name: Download dependencies
+        working-directory: ${{ inputs.package-path }}
+        run: go mod download
+
+      - name: Build
+        working-directory: ${{ inputs.package-path }}
+        run: go build -v ./...
+
+      - name: Vet
+        if: inputs.run-vet
+        working-directory: ${{ inputs.package-path }}
+        run: go vet ./...
+
+      - name: Lint (golangci-lint)
+        if: inputs.run-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: ${{ inputs.package-path }}
+          args: --timeout=5m
+          skip-cache: true
+
+      - name: Format check
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          fmt_output=$(gofmt -d .)
+          if [ -n "$fmt_output" ]; then
+            echo "$fmt_output"
+            exit 1
+          fi
+
+      - name: Test
+        if: inputs.run-tests
+        working-directory: ${{ inputs.package-path }}
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Coverage report
+        if: inputs.run-tests
+        working-directory: ${{ inputs.package-path }}
+        run: go tool cover -func=coverage.out

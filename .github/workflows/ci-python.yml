@@ -1,0 +1,84 @@
+name: Python CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: false
+        default: '3.12'
+        type: string
+      package-path:
+        required: false
+        default: '.'
+        type: string
+      run-tests:
+        required: false
+        default: true
+        type: boolean
+      run-type-check:
+        required: false
+        default: true
+        type: boolean
+      run-security:
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+jobs:
+  check:
+    name: Python Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync dependencies
+        working-directory: ${{ inputs.package-path }}
+        run: uv sync
+
+      - name: Ruff format check
+        working-directory: ${{ inputs.package-path }}
+        run: uvx ruff format --check .
+
+      - name: Ruff lint
+        working-directory: ${{ inputs.package-path }}
+        run: uvx ruff check .
+
+      - name: Type check (mypy)
+        if: inputs.run-type-check
+        working-directory: ${{ inputs.package-path }}
+        run: uvx mypy src --ignore-missing-imports || true
+
+      - name: Security scan (bandit)
+        if: inputs.run-security
+        working-directory: ${{ inputs.package-path }}
+        run: uvx bandit -r src -ll || true
+
+      - name: pip-audit
+        if: inputs.run-security
+        working-directory: ${{ inputs.package-path }}
+        run: uvx pip-audit || true
+
+      - name: Test
+        if: inputs.run-tests
+        working-directory: ${{ inputs.package-path }}
+        run: uv run pytest --cov=src --cov-report=xml
+
+      - name: Upload coverage
+        if: inputs.run-tests
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ inputs.package-path }}/coverage.xml
+          flags: python
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

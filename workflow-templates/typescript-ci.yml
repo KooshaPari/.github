@@ -1,0 +1,16 @@
+name: TypeScript CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: phenotype/.github/.github/workflows/ci-typescript.yml@main
+    with:
+      node-version: '20'
+      package-manager: 'npm'
+      run-tests: true
+      run-lint: true
+      run-type-check: true

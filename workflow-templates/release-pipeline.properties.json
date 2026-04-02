@@ -1,0 +1,7 @@
+{
+  "name": "Release Pipeline",
+  "description": "Complete release pipeline with CI, security scan, and GitHub release creation",
+  "iconName": "tag",
+  "categories": ["Release", "CI/CD"],
+  "fileName": "release-pipeline.yml"
+}

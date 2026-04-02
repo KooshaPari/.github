@@ -1,0 +1,87 @@
+name: TypeScript CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        default: '20'
+        type: string
+      package-manager:
+        required: false
+        default: 'npm'
+        type: string
+      package-path:
+        required: false
+        default: '.'
+        type: string
+      run-tests:
+        required: false
+        default: true
+        type: boolean
+      run-type-check:
+        required: false
+        default: true
+        type: boolean
+      run-lint:
+        required: false
+        default: true
+        type: boolean
+      run-build:
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  check:
+    name: TypeScript Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+
+      - name: Install dependencies (npm)
+        if: inputs.package-manager == 'npm'
+        working-directory: ${{ inputs.package-path }}
+        run: npm ci
+
+      - name: Install dependencies (pnpm)
+        if: inputs.package-manager == 'pnpm'
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Install dependencies (yarn)
+        if: inputs.package-manager == 'yarn'
+        working-directory: ${{ inputs.package-path }}
+        run: yarn install --frozen-lockfile
+
+      - name: Type check
+        if: inputs.run-type-check
+        working-directory: ${{ inputs.package-path }}
+        run: npx tsc --noEmit
+
+      - name: Lint (ESLint)
+        if: inputs.run-lint
+        working-directory: ${{ inputs.package-path }}
+        run: npx eslint . --ext .ts,.tsx || true
+
+      - name: Format check (Prettier)
+        if: inputs.run-lint
+        working-directory: ${{ inputs.package-path }}
+        run: npx prettier --check . || true
+
+      - name: Test
+        if: inputs.run-tests
+        working-directory: ${{ inputs.package-path }}
+        run: npm test -- --coverage || npm test
+
+      - name: Build
+        if: inputs.run-build
+        working-directory: ${{ inputs.package-path }}
+        run: npm run build

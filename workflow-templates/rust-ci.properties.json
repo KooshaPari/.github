@@ -1,0 +1,7 @@
+{
+  "name": "Rust CI",
+  "description": "Continuous integration workflow for Rust projects with fmt, clippy, test",
+  "iconName": "rust",
+  "categories": ["Rust", "CI"],
+  "fileName": "rust-ci.yml"
+}

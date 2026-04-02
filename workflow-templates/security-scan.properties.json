@@ -1,0 +1,7 @@
+{
+  "name": "Security Scan",
+  "description": "Security scanning with Semgrep, CodeQL, Trivy, and secret detection",
+  "iconName": "shield",
+  "categories": ["Security", "SAST"],
+  "fileName": "security-scan.yml"
+}

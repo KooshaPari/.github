@@ -1,0 +1,195 @@
+name: Publish Package (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      language:
+        required: true
+        type: string
+        description: 'Programming language (npm, pypi, crates, docker)'
+      registry:
+        required: true
+        type: string
+        description: 'Package registry (npmjs, pypi, crates.io, ghcr)'
+      package-path:
+        required: false
+        default: '.'
+        type: string
+      version:
+        required: false
+        type: string
+        description: 'Package version to publish (uses tag if not provided)'
+      dry_run:
+        required: false
+        type: boolean
+        default: false
+        description: 'Run without publishing'
+      build-command:
+        required: false
+        type: string
+        default: ''
+        description: 'Custom build command'
+    secrets:
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+      CARGO_TOKEN:
+        required: false
+      DOCKER_TOKEN:
+        required: false
+      GHCR_TOKEN:
+        required: false
+
+jobs:
+  publish:
+    name: Publish to ${{ inputs.registry }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # For GHCR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # Extract from git tag (v1.0.0 -> 1.0.0)
+            TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG#v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      # ─── NPM Publish ─────────────────────────────────────────────────────
+      - name: Setup Node.js
+        if: inputs.language == 'npm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to NPM
+        if: inputs.language == 'npm' && !inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm ci
+          npm publish --access public
+
+      - name: Dry run NPM publish
+        if: inputs.language == 'npm' && inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        run: |
+          npm ci
+          npm publish --dry-run
+
+      # ─── PyPI Publish ────────────────────────────────────────────────────
+      - name: Setup Python
+        if: inputs.language == 'pypi'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        if: inputs.language == 'pypi'
+        run: pip install build twine
+
+      - name: Build Python package
+        if: inputs.language == 'pypi'
+        working-directory: ${{ inputs.package-path }}
+        run: python -m build
+
+      - name: Publish to PyPI
+        if: inputs.language == 'pypi' && !inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
+
+      - name: Dry run PyPI publish
+        if: inputs.language == 'pypi' && inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        run: twine check dist/*
+
+      # ─── Crates.io Publish ───────────────────────────────────────────────
+      - name: Setup Rust
+        if: inputs.language == 'crates'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish to crates.io
+        if: inputs.language == 'crates' && !inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+        run: cargo publish --allow-dirty
+
+      - name: Dry run crates.io publish
+        if: inputs.language == 'crates' && inputs.dry_run
+        working-directory: ${{ inputs.package-path }}
+        run: cargo publish --dry-run
+
+      # ─── Docker/GHCR Publish ─────────────────────────────────────────────
+      - name: Setup Docker Buildx
+        if: inputs.language == 'docker'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: inputs.language == 'docker' && inputs.registry == 'ghcr'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: inputs.language == 'docker' && inputs.registry == 'dockerhub'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Extract metadata
+        if: inputs.language == 'docker'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ inputs.registry == 'ghcr' && format('ghcr.io/{0}', github.repository) || github.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
+            type=sha
+
+      - name: Build and push Docker image
+        if: inputs.language == 'docker' && !inputs.dry_run
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.package-path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Dry run Docker build
+        if: inputs.language == 'docker' && inputs.dry_run
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.package-path }}
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Summary
+        run: |
+          echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Language:** ${{ inputs.language }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry:** ${{ inputs.registry }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package Path:** ${{ inputs.package-path }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,7 @@
+{
+  "name": "Go CI",
+  "description": "Continuous integration for Go projects with vet, golangci-lint, and race detection",
+  "iconName": "go",
+  "categories": ["Go", "CI"],
+  "fileName": "go-ci.yml"
+}

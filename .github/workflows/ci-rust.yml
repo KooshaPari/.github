@@ -1,0 +1,103 @@
+name: Rust CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      rust-version:
+        required: false
+        default: 'stable'
+        type: string
+      workspace-path:
+        required: false
+        default: '.'
+        type: string
+      run-tests:
+        required: false
+        default: true
+        type: boolean
+      run-clippy:
+        required: false
+        default: true
+        type: boolean
+      run-fmt:
+        required: false
+        default: true
+        type: boolean
+      run-coverage:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  check:
+    name: Rust Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@${{ inputs.rust-version }}
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+
+      - name: Check
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo check --workspace
+
+      - name: Format check
+        if: inputs.run-fmt
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        if: inputs.run-clippy
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        if: inputs.run-tests
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo test --workspace
+
+      - name: Build
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo build --workspace
+
+  coverage:
+    name: Coverage
+    if: inputs.run-coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage
+        working-directory: ${{ inputs.workspace-path }}
+        run: cargo tarpaulin --workspace --out xml --output-dir coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ inputs.workspace-path }}/coverage/cobertura.xml
+          flags: rust
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
