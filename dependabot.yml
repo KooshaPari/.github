@@ -1,0 +1,9 @@
+# Default Dependabot configuration for member repos that inherit this file.
+# Repo-specific ecosystems (Terraform paths, Cargo workspaces, etc.) belong
+# in the project repository, not here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

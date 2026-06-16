@@ -4,7 +4,7 @@ contact_links:
     url: https://docs.phenotype.dev
     about: Check the documentation first
   - name: 💬 Discussions
-    url: https://github.com/phenotype/.github/discussions
+    url: https://github.com/KooshaPari/.github/discussions
     about: Ask questions and share ideas
   - name: 🐛 Security Issue
     url: mailto:security@phenotype.dev

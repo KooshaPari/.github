@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci:
-    uses: phenotype/.github/.github/workflows/ci-typescript.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-typescript.yml@main
     with:
       node-version: '20'
       package-manager: 'npm'

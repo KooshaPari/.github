@@ -1,12 +1,27 @@
-# 📋 Organization .github Repository
+# KooshaPari community profile (`.github`)
 
-This repository contains reusable workflows, issue templates, and community health files for the Phenotype ecosystem.
+This is the **KooshaPari account community profile repository**. GitHub uses it to provide default community health files and workflow starter templates to member repositories that do not define their own copies.
 
-## 🚀 Quick Start
+**This repo is the single source of truth (SSOT)** for org-wide defaults. Do not treat archived repos or per-project `.github/` folders as the canonical source for shared templates.
 
-### Using Reusable Workflows
+## What this repo provides
 
-In your project's workflow, reference the reusable workflows:
+| Path | Purpose |
+|------|---------|
+| `CONTRIBUTING.md` | Default contribution guidelines for member repos |
+| `CODE_OF_CONDUCT.md` | Default community standards |
+| `pull_request_template.md` | Default pull request template |
+| `ISSUE_TEMPLATE/` | Default issue templates (bug, feature, docs) |
+| `FUNDING.yml` | Default sponsorship links |
+| `workflow-templates/` | Starter workflows shown in **Actions → New workflow** |
+| `.github/workflows/` | Reusable workflows callable from member repos |
+| `docs/` | Shared documentation and journey guides |
+
+Member repos inherit these files automatically when they omit local equivalents. Repo-specific overrides (for example `phenotype-infra/.github/workflows/terraform-plan.yml`) stay in those repositories.
+
+## Quick start: reusable workflows
+
+Reference reusable workflows from member repo workflows:
 
 ```yaml
 name: My Project CI
@@ -14,7 +29,7 @@ on: [push, pull_request]
 
 jobs:
   rust-ci:
-    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-rust.yml@main
     with:
       rust-version: 'stable'
       run-coverage: true
@@ -22,38 +37,43 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 ```
 
-## 📁 Repository Structure
+## Quick start: workflow templates
+
+When creating a workflow in a member repo, choose a template from this repository under **Actions → New workflow**. Templates in `workflow-templates/` wrap the reusable workflows above.
+
+## Repository layout
 
 ```
-.github/
-├── workflows/              # Reusable workflows
-│   ├── ci-rust.yml         # Rust CI workflow
-│   ├── ci-python.yml       # Python CI workflow
-│   ├── ci-typescript.yml   # TypeScript/Node.js CI
-│   ├── ci-go.yml           # Go CI workflow
-│   ├── security.yml        # Security scanning
-│   ├── publish.yml         # Package publishing
-│   └── release.yml         # Release creation
-├── workflow-templates/     # Starter workflows
-├── ISSUE_TEMPLATE/         # Issue templates
-├── CODE_OF_CONDUCT.md      # Community guidelines
-├── CONTRIBUTING.md         # Contribution guide
-├── FUNDING.yml            # Sponsorship info
-└── pull_request_template.md # PR template
+.github/                          # This repo root
+├── .github/workflows/            # Reusable workflows (workflow_call)
+│   ├── ci-rust.yml
+│   ├── ci-python.yml
+│   ├── ci-typescript.yml
+│   ├── ci-go.yml
+│   ├── security.yml
+│   ├── publish.yml
+│   └── release.yml
+├── workflow-templates/           # Starter workflows + properties.json
+├── ISSUE_TEMPLATE/
+├── docs/
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── ARCHIVE_POLICY.md
+└── pull_request_template.md
 ```
 
-## 🔧 Available Reusable Workflows
+## Available reusable workflows
 
-### CI Workflows
+### CI
 
-| Workflow | Language | Purpose |
-|----------|----------|---------|
-| `ci-rust.yml` | Rust | Check, fmt, clippy, test, coverage |
-| `ci-python.yml` | Python | Ruff, mypy, bandit, pytest |
+| Workflow | Language | Checks |
+|----------|----------|--------|
+| `ci-rust.yml` | Rust | fmt, clippy, test, optional coverage |
+| `ci-python.yml` | Python | ruff, mypy, bandit, pytest |
 | `ci-typescript.yml` | TypeScript | ESLint, Prettier, tsc, test |
 | `ci-go.yml` | Go | vet, golangci-lint, test, race |
 
-### Supporting Workflows
+### Supporting
 
 | Workflow | Purpose |
 |----------|---------|
@@ -61,43 +81,7 @@ jobs:
 | `publish.yml` | Multi-registry publishing (npm, PyPI, crates.io, Docker) |
 | `release.yml` | GitHub release creation with artifacts |
 
-## 📖 Usage Examples
-
-### Rust Project
-
-```yaml
-name: CI
-on: [push, pull_request]
-
-jobs:
-  ci:
-    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
-    with:
-      rust-version: '1.75'
-      run-coverage: true
-```
-
-### Python Project with Security
-
-```yaml
-name: CI + Security
-on: [push, pull_request]
-
-jobs:
-  ci:
-    uses: phenotype/.github/.github/workflows/ci-python.yml@main
-    with:
-      python-version: '3.12'
-
-  security:
-    needs: ci
-    uses: phenotype/.github/.github/workflows/security.yml@main
-    with:
-      languages: 'python'
-      run-semgrep: true
-```
-
-### Full Pipeline
+## Example: full release pipeline
 
 ```yaml
 name: Release Pipeline
@@ -107,15 +91,15 @@ on:
 
 jobs:
   ci:
-    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-rust.yml@main
 
   security:
     needs: ci
-    uses: phenotype/.github/.github/workflows/security.yml@main
+    uses: KooshaPari/.github/.github/workflows/security.yml@main
 
   publish:
     needs: [ci, security]
-    uses: phenotype/.github/.github/workflows/publish.yml@main
+    uses: KooshaPari/.github/.github/workflows/publish.yml@main
     with:
       language: 'crates'
       registry: 'crates.io'
@@ -124,7 +108,7 @@ jobs:
 
   release:
     needs: publish
-    uses: phenotype/.github/.github/workflows/release.yml@main
+    uses: KooshaPari/.github/.github/workflows/release.yml@main
     with:
       version: ${{ github.ref_name }}
       generate-notes: true
@@ -132,10 +116,8 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## 🤝 Contributing
+## Maintenance
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+See [ARCHIVE_POLICY.md](./ARCHIVE_POLICY.md) for archive/migration context and [CONTRIBUTING.md](./CONTRIBUTING.md) for change guidelines.
 
-## 📄 License
-
-MIT - See individual projects for their specific licenses.
+Last reviewed: 2026-06-16

@@ -9,7 +9,7 @@ on:
 
 jobs:
   security:
-    uses: phenotype/.github/.github/workflows/security.yml@main
+    uses: KooshaPari/.github/.github/workflows/security.yml@main
     with:
       languages: 'python,javascript'
       run-semgrep: true

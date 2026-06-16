@@ -7,9 +7,9 @@ on:
 
 jobs:
   ci:
-    uses: phenotype/.github/.github/workflows/ci-go.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-go.yml@main
     with:
-      go-version: '1.22'
+      go-version: '1.23'
       run-tests: true
       run-lint: true
       run-vet: true

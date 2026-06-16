@@ -31,35 +31,35 @@ jobs:
   rust-ci:
     needs: detect-language
     if: needs.detect-language.outputs.language == 'rust'
-    uses: phenotype/.github/.github/workflows/ci-rust.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-rust.yml@main
 
   python-ci:
     needs: detect-language
     if: needs.detect-language.outputs.language == 'python'
-    uses: phenotype/.github/.github/workflows/ci-python.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-python.yml@main
 
   ts-ci:
     needs: detect-language
     if: needs.detect-language.outputs.language == 'typescript'
-    uses: phenotype/.github/.github/workflows/ci-typescript.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-typescript.yml@main
 
   go-ci:
     needs: detect-language
     if: needs.detect-language.outputs.language == 'go'
-    uses: phenotype/.github/.github/workflows/ci-go.yml@main
+    uses: KooshaPari/.github/.github/workflows/ci-go.yml@main
 
   # Security scan after CI
   security:
     needs: [rust-ci, python-ci, ts-ci, go-ci]
     if: always() && (needs.rust-ci.result == 'success' || needs.python-ci.result == 'success' || needs.ts-ci.result == 'success' || needs.go-ci.result == 'success')
-    uses: phenotype/.github/.github/workflows/security.yml@main
+    uses: KooshaPari/.github/.github/workflows/security.yml@main
     with:
       languages: 'rust,python,javascript,go'
 
   # Create release
   release:
     needs: security
-    uses: phenotype/.github/.github/workflows/release.yml@main
+    uses: KooshaPari/.github/.github/workflows/release.yml@main
     with:
       version: ${{ github.ref_name }}
       generate-notes: true
