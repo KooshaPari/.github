@@ -118,6 +118,6 @@ jobs:
 
 ## Maintenance
 
-See [ARCHIVE_POLICY.md](./ARCHIVE_POLICY.md) for archive/migration context and [CONTRIBUTING.md](./CONTRIBUTING.md) for change guidelines.
+See [ARCHIVE_POLICY.md](./ARCHIVE_POLICY.md) for archive/migration context, [docs/STACK_POLICY_POINTER.md](./docs/STACK_POLICY_POINTER.md) for canonical stack and domain policy (SSOT in phenotype-registry), and [CONTRIBUTING.md](./CONTRIBUTING.md) for change guidelines.
 
 Last reviewed: 2026-06-16
