@@ -1,9 +1,7 @@
-# zz-pause
+Yap Yap Yap
 
-Long pause. No active development. Code preserved.
+on vacation so the temps won't fix this :(.
 
----
+not paused - strict name stability and use/consumption for organization level repo Defaults.
 
-# zz-.github
-
-> ⚠️ **ARCHIVED / RETIRED** — This repo is no longer maintained. Code has been absorbed or is no longer relevant.
+if you're reading this why?
