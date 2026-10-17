@@ -1,3 +1,21 @@
 # Default CODEOWNERS for member repos that inherit this file.
 # Override with repo-local CODEOWNERS for project-specific paths.
+#
+# This is a solo-maintainer org, so every path resolves to @KooshaPari.
+# Per-path entries below make intent explicit for the highest-visibility
+# and highest-churn surfaces (the org profile and reusable workflows);
+# they do not change the escalation path.
 * @KooshaPari
+
+# Org-facing profile (rendered at https://github.com/KooshaPari)
+/profile/ @KooshaPari
+
+# Reusable workflows and workflow templates (used by member repos)
+/.github/workflows/ @KooshaPari
+/workflow-templates/ @KooshaPari
+
+# Canonical governance statements
+/ARCHIVE_POLICY.md @KooshaPari
+/CODE_OF_CONDUCT.md @KooshaPari
+/CONTRIBUTING.md @KooshaPari
+/CODEOWNERS @KooshaPari
